@@ -14,6 +14,7 @@ func main() {
 }
 
 func multiple(a []int) {
+	a = append(a, 10)
 	for i, _ := range a {
 		a[i] = a[i] * 2
 	}
