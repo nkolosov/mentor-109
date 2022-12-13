@@ -1,11 +1,25 @@
 package main
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jessevdk/go-flags"
+	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"log"
+)
+
+const (
+	host     = "0.0.0.0"
+	port     = 5432
+	user     = "username"
+	password = "password"
+	dbname   = "default_database"
 )
 
 func main() {
@@ -22,6 +36,31 @@ func main() {
 	}
 
 	logger.Info("config", zap.Any("logger", cfg))
+
+	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+	db, err := sql.Open("postgres", psqlconn)
+	defer db.Close()
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://migrations",
+		"postgres", driver)
+	if err != nil {
+		panic(err)
+	}
+	err = m.Up()
+	if err != nil {
+		if errors.Is(err, migrate.ErrNoChange) {
+			fmt.Println("без изменений")
+		} else {
+			panic(err)
+		}
+	}
+	err = db.Ping()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Connected!")
 }
 
 // initLogger создает и настраивает новый экземпляр логгера
