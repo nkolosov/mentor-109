@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package auction.category.category.v1;
+
+option csharp_namespace = "Auction.Category.Category.V1";
+option go_package = "categoryv1";
+option java_multiple_files = true;
+option java_outer_classname = "CategoryProto";
+option java_package = "com.auction.category.category.v1";
+option objc_class_prefix = "ACC";
+option php_namespace = "Auction\\Category\\Category\\V1";
+
+import "google/protobuf/timestamp.proto";
+
+// Категория.
+message Category {
+  int32 id = 1;
+  string name = 2;
+  google.protobuf.Timestamp create_time = 3;
+  google.protobuf.Timestamp modify_time = 4;
+  google.protobuf.Timestamp delete_time = 5;
+}
