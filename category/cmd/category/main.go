@@ -14,14 +14,6 @@ import (
 	"log"
 )
 
-const (
-	host     = "0.0.0.0"
-	port     = 5432
-	user     = "username"
-	password = "password"
-	dbname   = "default_database"
-)
-
 func main() {
 	var cfg Config
 	parser := flags.NewParser(&cfg, flags.Default)
@@ -37,27 +29,43 @@ func main() {
 
 	logger.Info("config", zap.Any("logger", cfg))
 
-	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+	psqlconn := fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName,
+	)
+
 	db, err := sql.Open("postgres", psqlconn)
-	defer db.Close()
+	if err != nil {
+		logger.Fatal("failed to open db connection")
+	}
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			logger.Fatal("failed to close db connection")
+		}
+	}()
+	err = db.Ping()
+	if err != nil {
+		logger.Fatal("ping to db failed")
+	}
+
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		logger.Fatal("failed to get driver")
+	}
 	m, err := migrate.NewWithDatabaseInstance(
 		"file://migrations",
 		"postgres", driver)
 	if err != nil {
-		panic(err)
+		logger.Fatal("failed to get migrations")
 	}
 	err = m.Up()
 	if err != nil {
 		if errors.Is(err, migrate.ErrNoChange) {
-			fmt.Println("без изменений")
+			logger.Info("no change in migrations")
 		} else {
-			panic(err)
+			logger.Fatal("failed to apply migrations")
 		}
-	}
-	err = db.Ping()
-	if err != nil {
-		panic(err)
 	}
 
 	fmt.Println("Connected!")
