@@ -9,13 +9,14 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jessevdk/go-flags"
 	_ "github.com/lib/pq"
+	"github.com/nkolosov/mentor-109/internal/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"log"
 )
 
 func main() {
-	var cfg Config
+	var cfg config.Config
 	parser := flags.NewParser(&cfg, flags.Default)
 	_, err := parser.Parse()
 	if err != nil {

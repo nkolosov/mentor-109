@@ -1,4 +1,4 @@
-package main
+package config
 
 // Config конфигурация приложения
 type Config struct {
