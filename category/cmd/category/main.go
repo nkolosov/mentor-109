@@ -55,10 +55,10 @@ func main() {
 		logger.Fatal("failed to get driver")
 	}
 	m, err := migrate.NewWithDatabaseInstance(
-		"file://migrations",
+		"file://category/internal/migrations",
 		"postgres", driver)
 	if err != nil {
-		logger.Fatal("failed to get migrations")
+		logger.Fatal("failed to get migrations", zap.Error(err))
 	}
 	err = m.Up()
 	if err != nil {
