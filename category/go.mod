@@ -1,4 +1,4 @@
-module my/mentor-109
+module github.com/nkolosov/mentor-109
 
 go 1.18
 
