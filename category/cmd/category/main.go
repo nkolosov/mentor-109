@@ -30,25 +30,17 @@ func main() {
 
 	logger.Info("config", zap.Any("logger", cfg))
 
-	psqlconn := fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName,
-	)
-
-	db, err := sql.Open("postgres", psqlconn)
+	db, err := initDb(cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
 	if err != nil {
-		logger.Fatal("failed to open db connection", zap.Error(err))
+		logger.Fatal("failed to initialize db", zap.Error(err))
 	}
+
 	defer func() {
 		err := db.Close()
 		if err != nil {
 			logger.Fatal("failed to close db connection", zap.Error(err))
 		}
 	}()
-	err = db.Ping()
-	if err != nil {
-		logger.Fatal("ping to db failed", zap.Error(err))
-	}
 
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
@@ -70,6 +62,24 @@ func main() {
 	}
 
 	fmt.Println("Connected!")
+}
+func initDb(host string, port int, user string, password string, dbname string) (*sql.DB, error) {
+	psqlconn := fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		host, port, user, password, dbname,
+	)
+
+	db, err := sql.Open("postgres", psqlconn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open db connection: %w", err)
+	}
+
+	err = db.Ping()
+	if err != nil {
+		return nil, fmt.Errorf("ping to db failed: %w", err)
+	}
+
+	return db, nil
 }
 
 // initLogger создает и настраивает новый экземпляр логгера
