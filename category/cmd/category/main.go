@@ -36,27 +36,13 @@ func main() {
 	defer func() {
 		err := db.Close()
 		if err != nil {
-			logger.Fatal("failed to close db connection", zap.Error(err))
+			logger.Error("failed to close db connection", zap.Error(err))
 		}
 	}()
 
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	err = migrateUp(db)
 	if err != nil {
-		logger.Fatal("failed to get driver", zap.Error(err))
-	}
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://category/internal/migrations",
-		"postgres", driver)
-	if err != nil {
-		logger.Fatal("failed to get migrations", zap.Error(err))
-	}
-	err = m.Up()
-	if err != nil {
-		if errors.Is(err, migrate.ErrNoChange) {
-			logger.Info("no change in migrations")
-		} else {
-			logger.Fatal("failed to apply migrations", zap.Error(err))
-		}
+		logger.Fatal("failed to migrations", zap.Error(err))
 	}
 
 	fmt.Println("Connected!")
@@ -90,6 +76,27 @@ func initDb(host string, port int, user string, password string, dbname string) 
 	}
 
 	return db, nil
+}
+
+func migrateUp(db *sql.DB) error {
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		return fmt.Errorf("failed to get driver: %w", err)
+	}
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://category/internal/migrations",
+		"postgres", driver)
+	if err != nil {
+		return fmt.Errorf("failed to get migrations: %w", err)
+	}
+	err = m.Up()
+	if err != nil {
+		if !errors.Is(err, migrate.ErrNoChange) {
+			return fmt.Errorf("failed to apply migrations: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // initLogger создает и настраивает новый экземпляр логгера
