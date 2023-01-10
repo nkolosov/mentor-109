@@ -16,11 +16,9 @@ import (
 )
 
 func main() {
-	var cfg config.Config
-	parser := flags.NewParser(&cfg, flags.Default)
-	_, err := parser.Parse()
+	cfg, err := initConfig()
 	if err != nil {
-		log.Fatal("Failed to parse config.", err)
+		log.Fatal("Failed to init config.", err)
 	}
 
 	logger, err := initLogger(cfg.LogLevel, cfg.LogJSON)
@@ -63,6 +61,18 @@ func main() {
 
 	fmt.Println("Connected!")
 }
+
+func initConfig() (config.Config, error) {
+	var cfg config.Config
+	parser := flags.NewParser(&cfg, flags.Default)
+	_, err := parser.Parse()
+	if err != nil {
+		return cfg, fmt.Errorf("failed to parse config: %w", err)
+	}
+
+	return cfg, nil
+}
+
 func initDb(host string, port int, user string, password string, dbname string) (*sql.DB, error) {
 	psqlconn := fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
