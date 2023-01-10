@@ -37,22 +37,22 @@ func main() {
 
 	db, err := sql.Open("postgres", psqlconn)
 	if err != nil {
-		logger.Fatal("failed to open db connection")
+		logger.Fatal("failed to open db connection", zap.Error(err))
 	}
 	defer func() {
 		err := db.Close()
 		if err != nil {
-			logger.Fatal("failed to close db connection")
+			logger.Fatal("failed to close db connection", zap.Error(err))
 		}
 	}()
 	err = db.Ping()
 	if err != nil {
-		logger.Fatal("ping to db failed")
+		logger.Fatal("ping to db failed", zap.Error(err))
 	}
 
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
-		logger.Fatal("failed to get driver")
+		logger.Fatal("failed to get driver", zap.Error(err))
 	}
 	m, err := migrate.NewWithDatabaseInstance(
 		"file://category/internal/migrations",
@@ -65,7 +65,7 @@ func main() {
 		if errors.Is(err, migrate.ErrNoChange) {
 			logger.Info("no change in migrations")
 		} else {
-			logger.Fatal("failed to apply migrations")
+			logger.Fatal("failed to apply migrations", zap.Error(err))
 		}
 	}
 
