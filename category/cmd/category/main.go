@@ -1,13 +1,14 @@
 package main
 
 import (
-	"database/sql"
+	"context"
 	"errors"
 	"fmt"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jessevdk/go-flags"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/nkolosov/mentor-109/internal/config"
 	"go.uber.org/zap"
@@ -66,13 +67,13 @@ func initConfig() (config.Config, error) {
 	return cfg, nil
 }
 
-func initDb(host string, port int, user string, password string, dbname string) (*sql.DB, error) {
+func initDb(host string, port int, user string, password string, dbname string) (*sqlx.DB, error) {
 	psqlconn := fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname,
 	)
 
-	db, err := sql.Open("postgres", psqlconn)
+	db, err := sqlx.Open("postgres", psqlconn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open db connection: %w", err)
 	}
@@ -85,8 +86,8 @@ func initDb(host string, port int, user string, password string, dbname string) 
 	return db, nil
 }
 
-func migrateUp(db *sql.DB) error {
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
+func migrateUp(db *sqlx.DB) error {
+	driver, err := postgres.WithInstance(db.DB, &postgres.Config{})
 	if err != nil {
 		return fmt.Errorf("failed to get driver: %w", err)
 	}
