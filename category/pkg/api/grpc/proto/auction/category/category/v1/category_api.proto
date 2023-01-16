@@ -25,7 +25,6 @@ service CategoryAPI {
 }
 
 message CreateRequest {
-  int32 id = 1;
   string name = 2;
 }
 
@@ -34,7 +33,7 @@ message CreateResponse {
 }
 
 message UpdateRequest {
-  int32 id = 1;
+  string id = 1;
   string name = 2;
 }
 
@@ -43,13 +42,13 @@ message UpdateResponse {
 }
 
 message DeleteRequest {
-  int32 id = 1;
+  string id = 1;
 }
 
 message DeleteResponse {}
 
 message FilterRequest {
-  repeated int32 ids = 1;
+  repeated string ids = 1;
 }
 
 message FilterResponse {
