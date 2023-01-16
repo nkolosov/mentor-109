@@ -7,13 +7,26 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpczap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
+	grpcrecovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/jessevdk/go-flags"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	grpc_server "github.com/nkolosov/mentor-109/internal/api/grpc"
 	"github.com/nkolosov/mentor-109/internal/config"
+	"github.com/nkolosov/mentor-109/internal/repository/potgresql"
+	categoryv1 "github.com/nkolosov/mentor-109/pkg/api/grpc/gen/auction/category/category/v1"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 	"log"
+	"net"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
@@ -54,6 +67,61 @@ func main() {
 	}
 
 	fmt.Println("Connected!")
+
+	err = startGRPCServer(context.Background(), cfg.GrpcListen, db, logger)
+	if err != nil {
+		logger.Fatal("failed to start grpc server", zap.Error(err))
+	}
+
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	<-sig
+}
+
+func startGRPCServer(
+	ctx context.Context,
+	listen string,
+	db *sqlx.DB,
+	logger *zap.Logger,
+) error {
+	logger.Info("gRPC started", zap.String("listen", listen))
+	lis, err := net.Listen("tcp", listen)
+	if err != nil {
+		return fmt.Errorf("failed to listen GRPC server: %v", err)
+	}
+
+	recoverFromPanicHandler := func(p interface{}) error {
+		err := fmt.Errorf("recovered from panic: %s", p)
+		logger.Error("recovered from panic", zap.Error(err))
+
+		return err
+	}
+	opts := []grpcrecovery.Option{
+		grpcrecovery.WithRecoveryHandler(recoverFromPanicHandler),
+	}
+
+	grpc_prometheus.EnableHandlingTimeHistogram()
+	s := grpc.NewServer(
+		grpc_middleware.WithUnaryServerChain(
+			grpcrecovery.UnaryServerInterceptor(opts...),
+			grpc_prometheus.UnaryServerInterceptor,
+		),
+		grpc_middleware.WithStreamServerChain(
+			grpcrecovery.StreamServerInterceptor(opts...),
+			grpczap.StreamServerInterceptor(logger),
+			grpc_prometheus.StreamServerInterceptor,
+		))
+
+	categoryv1.RegisterCategoryAPIServer(
+		s,
+		grpc_server.NewCategoryServer(
+			potgresql.NewCategoryRepository(db, logger),
+			grpc_server.NewToProtobufMapper(),
+		),
+	)
+
+	reflection.Register(s)
+	return s.Serve(lis)
 }
 
 func initConfig() (config.Config, error) {
