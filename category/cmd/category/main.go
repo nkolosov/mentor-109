@@ -28,6 +28,13 @@ func main() {
 
 	logger.Info("config", zap.Any("logger", cfg))
 
+	defer func() {
+		if msg := recover(); msg != nil {
+			err := fmt.Errorf("%s", msg)
+			logger.Error("recovered from panic, but application will be terminated", zap.Error(err))
+		}
+	}()
+
 	db, err := initDb(cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
 	if err != nil {
 		logger.Fatal("failed to initialize db", zap.Error(err))
