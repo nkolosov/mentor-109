@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const timeout = 250 * time.Millisecond
+
 type CategoryRepository struct {
 	db     *sqlx.DB
 	logger *zap.Logger
@@ -27,7 +29,7 @@ func NewCategoryRepository(
 }
 
 func (r *CategoryRepository) Create(ctx context.Context, id entity.CategoryId, name string) (*entity.Category, error) {
-	queryCtx, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
+	queryCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	_, err := r.db.ExecContext(
@@ -41,7 +43,7 @@ func (r *CategoryRepository) Create(ctx context.Context, id entity.CategoryId, n
 }
 
 func (r *CategoryRepository) Update(ctx context.Context, id entity.CategoryId, name string) (*entity.Category, error) {
-	queryCtx, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
+	queryCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	_, err := r.db.ExecContext(
@@ -55,7 +57,7 @@ func (r *CategoryRepository) Update(ctx context.Context, id entity.CategoryId, n
 }
 
 func (r *CategoryRepository) Delete(ctx context.Context, id entity.CategoryId) error {
-	queryCtx, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
+	queryCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	_, err := r.db.ExecContext(
@@ -69,7 +71,7 @@ func (r *CategoryRepository) Delete(ctx context.Context, id entity.CategoryId) e
 }
 
 func (r *CategoryRepository) Filter(ctx context.Context, ids []entity.CategoryId) ([]*entity.Category, error) {
-	queryCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	queryCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	categoryIds := make([]string, 0, len(ids))
