@@ -115,8 +115,14 @@ func (r *CategoryRepository) Filter(ctx context.Context, ids []entity.CategoryId
 			continue
 		}
 
+		id, err := uuid.Parse(category.Id)
+		if err != nil {
+			r.logger.Error("invalid id", zap.Error(err))
+			continue
+		}
+
 		categories = append(categories, &entity.Category{
-			Id:               category.Id,
+			Id:               entity.CategoryId(id),
 			Name:             category.Name,
 			CreateDate:       category.CreatedAt,
 			ModificationDate: category.UpdatedAt,

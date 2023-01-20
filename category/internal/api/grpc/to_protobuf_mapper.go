@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"github.com/google/uuid"
 	"github.com/nkolosov/mentor-109/internal/entity"
 	categoryv1 "github.com/nkolosov/mentor-109/pkg/api/grpc/gen/auction/category/category/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -20,7 +21,7 @@ func (m *ToProtobufMapper) mapCategory(category *entity.Category) *categoryv1.Ca
 	}
 
 	return &categoryv1.Category{
-		Id:         category.Id,
+		Id:         uuid.UUID(category.Id).String(),
 		Name:       category.Name,
 		CreateTime: timestamppb.New(category.CreateDate),
 		ModifyTime: timestamppb.New(category.ModificationDate),

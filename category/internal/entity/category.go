@@ -9,7 +9,7 @@ import (
 type CategoryId uuid.UUID
 
 type Category struct {
-	Id               string
+	Id               CategoryId
 	Name             string
 	CreateDate       time.Time
 	ModificationDate time.Time
