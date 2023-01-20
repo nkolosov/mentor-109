@@ -1,4 +1,4 @@
-package potgresql
+package postgresql
 
 import (
 	"context"

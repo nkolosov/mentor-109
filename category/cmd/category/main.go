@@ -16,7 +16,7 @@ import (
 	_ "github.com/lib/pq"
 	grpc_server "github.com/nkolosov/mentor-109/internal/api/grpc"
 	"github.com/nkolosov/mentor-109/internal/config"
-	"github.com/nkolosov/mentor-109/internal/repository/potgresql"
+	"github.com/nkolosov/mentor-109/internal/repository/postgresql"
 	categoryv1 "github.com/nkolosov/mentor-109/pkg/api/grpc/gen/auction/category/category/v1"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -115,7 +115,7 @@ func startGRPCServer(
 	categoryv1.RegisterCategoryAPIServer(
 		s,
 		grpc_server.NewCategoryServer(
-			potgresql.NewCategoryRepository(db, logger),
+			postgresql.NewCategoryRepository(db, logger),
 			grpc_server.NewToProtobufMapper(),
 		),
 	)
