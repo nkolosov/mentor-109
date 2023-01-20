@@ -3,11 +3,10 @@ package postgresql
 import (
 	"context"
 	"database/sql"
-	"errors"
-	"fmt"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/nkolosov/mentor-109/internal/entity"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"time"
 )
@@ -35,7 +34,7 @@ func (r *CategoryRepository) Create(ctx context.Context, id entity.CategoryId, n
 		queryCtx,
 		`insert into category (id, name)VALUES ($1, $2)`, uuid.UUID(id).String(), name)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create category: %w", err)
+		return nil, errors.Wrapf(err, "failed to create category")
 	}
 
 	return nil, nil
@@ -49,7 +48,7 @@ func (r *CategoryRepository) Update(ctx context.Context, id entity.CategoryId, n
 		queryCtx,
 		"UPDATE category SET name=$1 WHERE id=$2", name, uuid.UUID(id).String())
 	if err != nil {
-		return nil, fmt.Errorf("failed to update category: %w", err)
+		return nil, errors.Wrapf(err, "failed to update category")
 	}
 
 	return nil, nil
@@ -63,7 +62,7 @@ func (r *CategoryRepository) Delete(ctx context.Context, id entity.CategoryId) e
 		queryCtx,
 		`DELETE FROM category WHERE id=$1`, uuid.UUID(id).String())
 	if err != nil {
-		return fmt.Errorf("failed to delete category: %w", err)
+		return errors.Wrapf(err, "failed to delete category")
 	}
 
 	return nil
@@ -84,16 +83,14 @@ func (r *CategoryRepository) Filter(ctx context.Context, ids []entity.CategoryId
 	if len(ids) != 0 {
 		query, args, err = sqlx.In("select * from category where id IN (?);", categoryIds)
 		if err != nil {
-			r.logger.Error("failed to filter categories in", zap.Error(err))
-			return nil, errors.New("failed to filter categories, see log for more info")
+			return nil, errors.Wrapf(err, "failed to filter categories in")
 		}
 		query = r.db.Rebind(query)
 	}
 
 	rows, err := r.db.QueryxContext(queryCtx, query, args...)
 	if err != nil {
-		r.logger.Error("failed to filter categories", zap.Error(err))
-		return nil, errors.New("failed to filter categories, see log for more info")
+		return nil, errors.Wrapf(err, "failed to filter categorie")
 	}
 	defer func() {
 		err := rows.Close()
@@ -126,8 +123,7 @@ func (r *CategoryRepository) Filter(ctx context.Context, ids []entity.CategoryId
 	}
 
 	if rows.Err() != nil {
-		r.logger.Error("db error on rows iteration", zap.Error(rows.Err()))
-		return nil, errors.New("db error, see log for more info")
+		return nil, errors.Wrapf(rows.Err(), "db error on rows iteration")
 	}
 
 	return categories, nil
