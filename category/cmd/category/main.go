@@ -15,6 +15,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	grpc_server "github.com/nkolosov/mentor-109/internal/api/grpc"
+	"github.com/nkolosov/mentor-109/internal/api/http/service"
 	"github.com/nkolosov/mentor-109/internal/config"
 	"github.com/nkolosov/mentor-109/internal/repository/postgresql"
 	categoryv1 "github.com/nkolosov/mentor-109/pkg/api/grpc/gen/auction/category/category/v1"
@@ -26,6 +27,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 )
 
@@ -41,6 +43,9 @@ func main() {
 	}
 
 	logger.Info("config", zap.Any("logger", cfg))
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	initSignalHandler(ctx, logger, cancelFunc)
 
 	defer func() {
 		if msg := recover(); msg != nil {
@@ -68,14 +73,30 @@ func main() {
 
 	fmt.Println("Connected!")
 
-	err = startGRPCServer(context.Background(), cfg.GrpcListen, db, logger)
-	if err != nil {
-		logger.Fatal("failed to start grpc server", zap.Error(err))
-	}
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		logger.Info("Starting service HTTP server", zap.String("listen", cfg.HttpServiceListen))
+		server := service.NewServer(logger)
+		err := server.ListenAndServe(ctx, cfg.HttpServiceListen, cfg.EnablePprof)
+		cancelFunc() // завершаем работу приложения, если по какой-то причине завершилась работа http сервера
+		if err != nil {
+			logger.Error("error on listen and serve api HTTP server", zap.Error(err))
+		}
+	}()
 
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-	<-sig
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err = startGRPCServer(ctx, cfg.GrpcListen, db, logger)
+		if err != nil {
+			logger.Fatal("failed to start grpc server", zap.Error(err))
+		}
+	}()
+
+	wg.Wait()
+	logger.Info("Application has been shutdown gracefully")
 }
 
 func startGRPCServer(
@@ -121,6 +142,11 @@ func startGRPCServer(
 	)
 
 	reflection.Register(s)
+
+	go func() {
+		<-ctx.Done()
+		s.GracefulStop()
+	}()
 	return s.Serve(lis)
 }
 
@@ -195,4 +221,36 @@ func initLogger(logLevel string, isLogJson bool) (*zap.Logger, error) {
 	}
 
 	return opts.Build()
+}
+
+// initSignalHandler обрабатывает системные сигналы
+func initSignalHandler(
+	ctx context.Context,
+	logger *zap.Logger,
+	cancelFunc context.CancelFunc,
+) {
+	osSigCh := make(chan os.Signal, 1)
+
+	signal.Notify(
+		osSigCh,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT,
+	)
+
+	go func() {
+		s := <-osSigCh
+		switch s {
+		case syscall.SIGINT:
+			logger.Info("Received signal SIGINT! Process exited")
+			cancelFunc()
+		case syscall.SIGTERM:
+			logger.Info("Received signal SIGTERM! Process exited")
+			cancelFunc()
+		case syscall.SIGQUIT:
+			logger.Info("Received signal SIGQUIT! Process exited")
+			cancelFunc()
+		}
+	}()
 }
