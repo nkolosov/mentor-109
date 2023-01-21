@@ -4,7 +4,7 @@ lint:
   group: uber2
 generate:
   go_options:
-    import_path: mentor-109/category/pkg/api/grpc/proto
+    import_path: mentor-109/category/pkg/api/kafka/proto
   plugins:
     - name: go
       type: go
