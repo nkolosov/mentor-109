@@ -7,4 +7,5 @@ CREATE TABLE IF NOT EXISTS category (
     PRIMARY KEY (id)
 );
 
-CREATE UNIQUE INDEX name ON category(name)
+CREATE UNIQUE INDEX name ON category(name);
+CREATE INDEX deleted_at ON category(deleted_at);
