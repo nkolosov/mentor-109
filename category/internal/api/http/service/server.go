@@ -26,7 +26,7 @@ func (s *Server) ListenAndServe(ctx context.Context, listen string, enablePprof 
 	router := fasthttprouter.New()
 
 	router.GET("/healthz", s.HandleLivenessProbe)
-	router.GET("/healthy", s.HandleReadinessProbe)
+	router.GET("/readyz", s.HandleReadinessProbe)
 	router.GET("/metrics", s.HandleMetrics)
 	// обязательный путь для проверки валидной работы самого HTTP-сервера
 	router.GET("/ping", s.HandlePing)
