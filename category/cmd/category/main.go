@@ -37,7 +37,7 @@ func main() {
 		log.Fatal("Failed to init config.", err)
 	}
 
-	logger, err := initLogger(cfg.LogLevel, cfg.LogJSON)
+	logger, err := initLogger(cfg.Logger.Level, cfg.Logger.IsJSON)
 	if err != nil {
 		log.Fatal("Failed to init logger.", err)
 	}
@@ -54,7 +54,7 @@ func main() {
 		}
 	}()
 
-	db, err := initDb(cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
+	db, err := initDb(cfg.DB.Host, cfg.DB.Port, cfg.DB.User, cfg.DB.Password, cfg.DB.Name)
 	if err != nil {
 		logger.Fatal("failed to initialize db", zap.Error(err))
 	}
@@ -77,9 +77,9 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		logger.Info("Starting service HTTP server", zap.String("listen", cfg.HttpServiceListen))
+		logger.Info("Starting service HTTP server", zap.String("listen", cfg.App.HttpServiceListen))
 		server := service.NewServer(logger)
-		err := server.ListenAndServe(ctx, cfg.HttpServiceListen, cfg.EnablePprof)
+		err := server.ListenAndServe(ctx, cfg.App.HttpServiceListen, cfg.App.EnablePprof)
 		cancelFunc() // завершаем работу приложения, если по какой-то причине завершилась работа http сервера
 		if err != nil {
 			logger.Error("error on listen and serve api HTTP server", zap.Error(err))
@@ -89,7 +89,7 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err = startGRPCServer(ctx, cfg.GrpcListen, db, logger)
+		err = startGRPCServer(ctx, cfg.App.GrpcListen, db, logger)
 		if err != nil {
 			logger.Fatal("failed to start grpc server", zap.Error(err))
 		}
