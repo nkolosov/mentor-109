@@ -18,7 +18,7 @@ import (
 	"github.com/nkolosov/mentor-109/internal/api/http/service"
 	"github.com/nkolosov/mentor-109/internal/config"
 	"github.com/nkolosov/mentor-109/internal/repository/postgresql"
-	categoryv1 "github.com/nkolosov/mentor-109/pkg/api/grpc/gen/auction/category/category/v1"
+	grpc_category "github.com/nkolosov/mentor-109/pkg/api/grpc/gen/auction/category/category/v1"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
@@ -133,7 +133,7 @@ func startGRPCServer(
 			grpc_prometheus.StreamServerInterceptor,
 		))
 
-	categoryv1.RegisterCategoryAPIServer(
+	grpc_category.RegisterCategoryAPIServer(
 		s,
 		grpc_server.NewCategoryServer(
 			postgresql.NewCategoryRepository(db, logger),
