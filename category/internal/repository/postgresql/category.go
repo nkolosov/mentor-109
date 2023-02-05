@@ -13,6 +13,14 @@ import (
 
 const timeout = 250 * time.Millisecond
 
+type categoryDb struct {
+	Id        string       `db:"id"`
+	Name      string       `db:"name"`
+	CreatedAt time.Time    `db:"created_at"`
+	DeletedAt sql.NullTime `db:"deleted_at"`
+	UpdatedAt time.Time    `db:"updated_at"`
+}
+
 type CategoryRepository struct {
 	db     *sqlx.DB
 	logger *zap.Logger
@@ -28,13 +36,14 @@ func NewCategoryRepository(
 	}
 }
 
-func (r *CategoryRepository) Create(ctx context.Context, id entity.CategoryId, name string) (*entity.Category, error) {
+func (r *CategoryRepository) Create(ctx context.Context, category *entity.Category) (*entity.Category, error) {
 	queryCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	_, err := r.db.ExecContext(
 		queryCtx,
-		`insert into category (id, name)VALUES ($1, $2)`, uuid.UUID(id).String(), name)
+		`insert into category (id, name,created_at,updated_at)VALUES ($1, $2, $3, $4)`,
+		uuid.UUID(category.Id()).String(), category.Name(), category.CreateDate(), category.ModificationDate())
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create category")
 	}
@@ -42,13 +51,13 @@ func (r *CategoryRepository) Create(ctx context.Context, id entity.CategoryId, n
 	return nil, nil
 }
 
-func (r *CategoryRepository) Update(ctx context.Context, id entity.CategoryId, name string) (*entity.Category, error) {
+func (r *CategoryRepository) Update(ctx context.Context, category *entity.Category) (*entity.Category, error) {
 	queryCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	_, err := r.db.ExecContext(
 		queryCtx,
-		"UPDATE category SET name=$1 WHERE id=$2", name, uuid.UUID(id).String())
+		"UPDATE category SET name=$1 WHERE id=$2", category.Name(), uuid.UUID(category.Id()).String())
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to update category")
 	}
@@ -103,31 +112,18 @@ func (r *CategoryRepository) Filter(ctx context.Context, ids []entity.CategoryId
 
 	categories := make([]*entity.Category, 0)
 	for rows.Next() {
-		var category struct {
-			Id        string       `db:"id"`
-			Name      string       `db:"name"`
-			CreatedAt time.Time    `db:"created_at"`
-			DeletedAt sql.NullTime `db:"deleted_at"`
-			UpdatedAt time.Time    `db:"updated_at"`
-		}
-		if err = rows.StructScan(&category); err != nil {
+		var categoryDb categoryDb
+		if err = rows.StructScan(&categoryDb); err != nil {
 			r.logger.Error("can't scan category to struct from db", zap.Error(err))
 			continue
 		}
 
-		id, err := uuid.Parse(category.Id)
-		if err != nil {
-			r.logger.Error("invalid id", zap.Error(err))
-			continue
+		category, err := r.toDomain(categoryDb)
+		if err = rows.StructScan(&categoryDb); err != nil {
+			return nil, errors.Wrapf(err, "failed convert to domain")
 		}
 
-		categories = append(categories, &entity.Category{
-			Id:               entity.CategoryId(id),
-			Name:             category.Name,
-			CreateDate:       category.CreatedAt,
-			ModificationDate: category.UpdatedAt,
-			DeleteDate:       category.DeletedAt.Time,
-		})
+		categories = append(categories, category)
 	}
 
 	if rows.Err() != nil {
@@ -135,4 +131,53 @@ func (r *CategoryRepository) Filter(ctx context.Context, ids []entity.CategoryId
 	}
 
 	return categories, nil
+}
+
+func (r *CategoryRepository) Get(ctx context.Context, id entity.CategoryId) (*entity.Category, error) {
+	queryCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	rows, err := r.db.QueryxContext(
+		queryCtx,
+		`select * from category WHERE id=$1`, uuid.UUID(id).String())
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get query")
+	}
+	defer func() {
+		err := rows.Close()
+		if err != nil {
+			r.logger.Error("failed to close rows db", zap.Error(err))
+		}
+	}()
+
+	for rows.Next() {
+		var categoryDb categoryDb
+		if err = rows.StructScan(&categoryDb); err != nil {
+			return nil, errors.Wrapf(err, "failed to get scan categorie")
+		}
+
+		category, err := r.toDomain(categoryDb)
+		if err = rows.StructScan(&categoryDb); err != nil {
+			return nil, errors.Wrapf(err, "failed convert to domain")
+		}
+
+		return category, nil
+	}
+
+	return nil, nil
+}
+
+func (r *CategoryRepository) toDomain(categoryDb categoryDb) (*entity.Category, error) {
+	id, err := uuid.Parse(categoryDb.Id)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get scan categorie")
+	}
+
+	return entity.NewCategory(
+		entity.CategoryId(id),
+		categoryDb.Name,
+		categoryDb.CreatedAt,
+		categoryDb.UpdatedAt,
+		categoryDb.DeletedAt.Time,
+	), nil
 }

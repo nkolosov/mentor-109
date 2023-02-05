@@ -9,12 +9,14 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"strings"
+	"time"
 )
 
 type CategoryRepository interface {
-	Create(ctx context.Context, id entity.CategoryId, name string) (*entity.Category, error)
-	Update(ctx context.Context, id entity.CategoryId, name string) (*entity.Category, error)
+	Create(ctx context.Context, category *entity.Category) (*entity.Category, error)
+	Update(ctx context.Context, category *entity.Category) (*entity.Category, error)
 	Delete(ctx context.Context, id entity.CategoryId) error
+	Get(ctx context.Context, id entity.CategoryId) (*entity.Category, error)
 	Filter(ctx context.Context, ids []entity.CategoryId) ([]*entity.Category, error)
 }
 
@@ -34,7 +36,15 @@ func NewCategoryServer(
 }
 
 func (s *CategoryServer) Create(ctx context.Context, request *categoryv1.CreateRequest) (*categoryv1.CreateResponse, error) {
-	category, err := s.repository.Create(ctx, entity.CategoryId(uuid.New()), request.GetName())
+	category, err := s.repository.Create(
+		ctx,
+		entity.NewCategory(
+			entity.CategoryId(uuid.New()),
+			request.GetName(),
+			time.Now(),
+			time.Now(),
+			time.Time{},
+		))
 	if err != nil {
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to create category: %s", err))
 	}
@@ -49,7 +59,20 @@ func (s *CategoryServer) Update(ctx context.Context, request *categoryv1.UpdateR
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("invalid id: %s: %s", request.GetId(), err))
 	}
 
-	category, err := s.repository.Update(ctx, entity.CategoryId(id), request.GetName())
+	category, err := s.repository.Get(ctx, entity.CategoryId(id))
+	if err != nil {
+		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to get category: %s", err))
+	}
+
+	category, err = s.repository.Update(
+		ctx,
+		entity.NewCategory(
+			entity.CategoryId(id),
+			request.GetName(),
+			category.CreateDate(),
+			time.Now(),
+			time.Time{},
+		))
 	if err != nil {
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to update category: %s", err))
 	}
