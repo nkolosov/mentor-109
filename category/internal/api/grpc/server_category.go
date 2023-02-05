@@ -11,13 +11,20 @@ import (
 	"strings"
 )
 
+type CategoryRepository interface {
+	Create(ctx context.Context, id entity.CategoryId, name string) (*entity.Category, error)
+	Update(ctx context.Context, id entity.CategoryId, name string) (*entity.Category, error)
+	Delete(ctx context.Context, id entity.CategoryId) error
+	Filter(ctx context.Context, ids []entity.CategoryId) ([]*entity.Category, error)
+}
+
 type CategoryServer struct {
-	repository     entity.CategoryRepository
+	repository     CategoryRepository
 	protobufMapper *ToProtobufMapper
 }
 
 func NewCategoryServer(
-	repository entity.CategoryRepository,
+	repository CategoryRepository,
 	protobufMapper *ToProtobufMapper,
 ) *CategoryServer {
 	return &CategoryServer{
