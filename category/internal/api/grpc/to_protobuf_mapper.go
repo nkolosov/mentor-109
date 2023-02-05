@@ -21,11 +21,11 @@ func (m *ToProtobufMapper) mapCategory(category *entity.Category) *categoryv1.Ca
 	}
 
 	return &categoryv1.Category{
-		Id:         uuid.UUID(category.Id).String(),
-		Name:       category.Name,
-		CreateTime: timestamppb.New(category.CreateDate),
-		ModifyTime: timestamppb.New(category.ModificationDate),
-		DeleteTime: timestamppb.New(category.DeleteDate),
+		Id:         uuid.UUID(category.Id()).String(),
+		Name:       category.Name(),
+		CreateTime: timestamppb.New(category.CreateDate()),
+		ModifyTime: timestamppb.New(category.ModificationDate()),
+		DeleteTime: timestamppb.New(category.DeleteDate()),
 	}
 }
 
