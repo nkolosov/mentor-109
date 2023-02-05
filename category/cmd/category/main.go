@@ -186,7 +186,7 @@ func migrateUp(db *sqlx.DB) error {
 		return fmt.Errorf("failed to get driver: %w", err)
 	}
 	m, err := migrate.NewWithDatabaseInstance(
-		"file://category/internal/migrations",
+		"file://category/migrations",
 		"postgres", driver)
 	if err != nil {
 		return fmt.Errorf("failed to get migrations: %w", err)
