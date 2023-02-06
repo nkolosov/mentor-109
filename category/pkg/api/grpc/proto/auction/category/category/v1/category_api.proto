@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package auction.category.category.v1;
+
+option csharp_namespace = "Auction.Category.Category.V1";
+option go_package = "categoryv1";
+option java_multiple_files = true;
+option java_outer_classname = "CategoryApiProto";
+option java_package = "com.auction.category.category.v1";
+option objc_class_prefix = "ACC";
+option php_namespace = "Auction\\Category\\Category\\V1";
+
+import "auction/category/category/v1/category.proto";
+
+// Сервис категорий.
+service CategoryAPI {
+  // Create создать категорию.
+  rpc Create(CreateRequest) returns (CreateResponse);
+  // Update обновить категорию.
+  rpc Update(UpdateRequest) returns (UpdateResponse);
+  // Delete удалить категорию.
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  // Filter фильтрует категории исходя из выбранных параметров.
+  rpc Filter(FilterRequest) returns (FilterResponse);
+}
+
+message CreateRequest {
+  string name = 2;
+}
+
+message CreateResponse {
+  Category category = 1;
+}
+
+message UpdateRequest {
+  string id = 1;
+  string name = 2;
+}
+
+message UpdateResponse {
+  Category category = 1;
+}
+
+message DeleteRequest {
+  string id = 1;
+}
+
+message DeleteResponse {}
+
+message FilterRequest {
+  repeated string ids = 1;
+}
+
+message FilterResponse {
+  repeated Category categories = 1;
+}

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package auction.category.category.v1;
+
+option csharp_namespace = "Auction.Category.Category.V1";
+option go_package = "categoryv1";
+option java_multiple_files = true;
+option java_outer_classname = "CategoryProto";
+option java_package = "com.auction.category.category.v1";
+option objc_class_prefix = "ACC";
+option php_namespace = "Auction\\Category\\Category\\V1";
+
+// Категория.
+message Category {
+  string id = 1;
+}
